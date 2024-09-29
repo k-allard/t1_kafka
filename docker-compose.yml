@@ -3,13 +3,29 @@ version: '1.0'
 services:
 
   postgres:
-    image: postgres:11.13
+    image: postgres:16.4
     container_name: t1_java_demo
+    shm_size: 128mb
+    restart: always
     ports:
-      - "5432:5432"
+      - 5432:5432
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=0000
+      POSTGRES_PASSWORD: postgresql_secret_password
+      APP_USER: appUser
+      APP_PASSWORD: appUserPassword
+      APP_DB: t1_demo
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgresql-data:/var/lib/postgresql/data
+      - "./config/postgresql/init_app_db.sh:/docker-entrypoint-initdb.d/init_app_db.sh"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --dbname=t1_demo --username=postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+
   zookeeper_t1:
     image: confluentinc/cp-zookeeper:5.5.0
     hostname: zookeeper_t1
@@ -37,3 +53,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+volumes:
+  postgresql-data:
+    name: t1-demo-postgresql-data
